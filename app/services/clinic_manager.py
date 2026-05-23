@@ -219,7 +219,7 @@ class ClinicManager:
             raise ValueError(f"Atendente #{attendant_id} não encontrado.")
         if attendant.busy:
             raise ValueError(
-                f"Atendente #{attendant_id} já está em atendimento (serviço #{attendant.current_service_id})."
+                f"Atendente #{attendant_id} já está ocupado (serviço #{attendant.current_service_id})."
             )
 
         # Prioridade sempre antes
