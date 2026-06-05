@@ -238,4 +238,4 @@ Cobertura de testes:
 
 ## 👤 Autor
 
-Projeto desenvolvido como trabalho acadêmico de Estruturas de Dados em Python.
+Projeto desenvolvido como trabalho acadêmico de Estruturas de Dados em Python....
