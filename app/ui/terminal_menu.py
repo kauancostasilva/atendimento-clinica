@@ -1,4 +1,5 @@
 """Interface de usuário por terminal - Menu interativo da Clínica."""
+
 import os
 import sys
 from datetime import datetime
@@ -7,23 +8,22 @@ from typing import Optional
 from app.models.client import Priority
 from app.services.clinic_manager import ClinicManager
 from app.services.persistence import (
-    save_state, load_state,
-    export_history_csv, export_performance_csv, export_top_clients_csv,
+    export_history_csv,
+    export_performance_csv,
+    export_top_clients_csv,
+    load_state,
+    save_state,
 )
-
-# ────────────────────────────────────────────────────────────────────────────── #
-#  CORES ANSI                                                                   #
-# ────────────────────────────────────────────────────────────────────────────── #
-RESET   = "\033[0m"
-BOLD    = "\033[1m"
-DIM     = "\033[2m"
-RED     = "\033[91m"
-GREEN   = "\033[92m"
-YELLOW  = "\033[93m"
-BLUE    = "\033[94m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
 MAGENTA = "\033[95m"
-CYAN    = "\033[96m"
-WHITE   = "\033[97m"
+CYAN = "\033[96m"
+WHITE = "\033[97m"
 BG_BLUE = "\033[44m"
 
 
@@ -80,10 +80,6 @@ def _info(msg: str) -> None:
 def _pause() -> None:
     input(c("\n  Pressione ENTER para continuar...", DIM))
 
-
-# ────────────────────────────────────────────────────────────────────────────── #
-#  HELPERS DE ENTRADA                                                           #
-# ────────────────────────────────────────────────────────────────────────────── #
 
 def _read_str(prompt: str, allow_empty: bool = False) -> str:
     """Lê string do usuário com tratamento de entrada vazia."""
@@ -142,10 +138,6 @@ def _read_date_filter() -> Optional[str]:
         return None
 
 
-# ────────────────────────────────────────────────────────────────────────────── #
-#  TELAS DE MENU                                                                #
-# ────────────────────────────────────────────────────────────────────────────── #
-
 def _print_main_menu() -> None:
     _header("SISTEMA DE GERENCIAMENTO DE ATENDIMENTOS")
     print(c("  CADASTROS", BOLD))
@@ -185,10 +177,6 @@ def _print_main_menu() -> None:
     print(c(_line(), CYAN))
 
 
-# ────────────────────────────────────────────────────────────────────────────── #
-#  AÇÕES                                                                        #
-# ────────────────────────────────────────────────────────────────────────────── #
-
 def _action_register_client(manager: ClinicManager) -> None:
     _section("CADASTRAR CLIENTE")
     name = _read_str("Nome completo")
@@ -219,7 +207,12 @@ def _action_list_clients(manager: ClinicManager) -> None:
     if not clients:
         _info("Nenhum cliente cadastrado.")
         return
-    print(c(f"  {'ID':<6} {'NOME':<30} {'TELEFONE':<15} {'PRIORIDADE':<12} {'STATUS'}", DIM))
+    print(
+        c(
+            f"  {'ID':<6} {'NOME':<30} {'TELEFONE':<15} {'PRIORIDADE':<12} {'STATUS'}",
+            DIM,
+        )
+    )
     print(c("  " + _line("·", 62), DIM))
     for cl in clients:
         prio = c("[PRIO]", YELLOW) if cl.priority == Priority.PRIORITY else "[NORM]"
@@ -237,7 +230,11 @@ def _action_list_attendants(manager: ClinicManager) -> None:
     print(c(f"  {'ID':<6} {'NOME':<30} {'STATUS'}", DIM))
     print(c("  " + _line("·", 50), DIM))
     for att in attendants:
-        status = c(f"Atendendo #{att.current_service_id}", YELLOW) if att.busy else c("Disponível", GREEN)
+        status = (
+            c(f"Atendendo #{att.current_service_id}", YELLOW)
+            if att.busy
+            else c("Disponível", GREEN)
+        )
         print(f"  #{att.attendant_id:<5} {att.name:<30} {status}")
 
 
@@ -257,11 +254,17 @@ def _action_open_service(manager: ClinicManager) -> None:
     client_id = _read_int("ID do cliente", min_val=1)
     try:
         service = manager.open_service(client_id)
-        queue_name = c("PRIORITÁRIA", YELLOW) if service.client_id and \
-            manager.find_client_by_id(service.client_id) and \
-            manager.find_client_by_id(service.client_id).priority == Priority.PRIORITY \
+        queue_name = (
+            c("PRIORITÁRIA", YELLOW)
+            if service.client_id
+            and manager.find_client_by_id(service.client_id)
+            and manager.find_client_by_id(service.client_id).priority
+            == Priority.PRIORITY
             else c("NORMAL", CYAN)
-        _ok(f"Cliente adicionado à fila {queue_name}. Atendimento #{service.service_id} aberto.")
+        )
+        _ok(
+            f"Cliente adicionado à fila {queue_name}. Atendimento #{service.service_id} aberto."
+        )
     except ValueError as e:
         _err(str(e))
 
@@ -331,7 +334,9 @@ def _action_undo(manager: ClinicManager) -> None:
     _section("DESFAZER ÚLTIMA FINALIZAÇÃO")
     try:
         service = manager.undo_last_finish()
-        _ok(f"Undo realizado! Atendimento #{service.service_id} ({service.client_name}) restaurado para EM ATENDIMENTO.")
+        _ok(
+            f"Undo realizado! Atendimento #{service.service_id} ({service.client_name}) restaurado para EM ATENDIMENTO."
+        )
     except ValueError as e:
         _err(str(e))
 
@@ -378,17 +383,26 @@ def _action_history(manager: ClinicManager) -> None:
     if not history:
         _info("Nenhum atendimento encontrado.")
         return
-    print(c(f"\n  {'#SRV':<6} {'CLIENTE':<25} {'ATENDENTE':<20} {'STATUS':<14} {'DURAÇÃO'}", DIM))
+    print(
+        c(
+            f"\n  {'#SRV':<6} {'CLIENTE':<25} {'ATENDENTE':<20} {'STATUS':<14} {'DURAÇÃO'}",
+            DIM,
+        )
+    )
     print(c("  " + _line("·", 62), DIM))
     for s in history:
         status_colors = {
-            "waiting": CYAN, "in_progress": YELLOW, "finished": GREEN,
+            "waiting": CYAN,
+            "in_progress": YELLOW,
+            "finished": GREEN,
         }
         status_label = s.status.value
         col = status_colors.get(status_label, WHITE)
         dur = f"{s.duration_seconds:.0f}s" if s.duration_seconds else "—"
         att = s.attendant_name or "—"
-        print(f"  #{s.service_id:<5} {s.client_name:<25} {att:<20} {c(status_label, col):<24} {dur}")
+        print(
+            f"  #{s.service_id:<5} {s.client_name:<25} {att:<20} {c(status_label, col):<24} {dur}"
+        )
     print(c(f"\n  Total: {len(history)} registro(s).", DIM))
 
 
@@ -414,8 +428,10 @@ def _action_top_clients(manager: ClinicManager) -> None:
     print(c("  " + _line("·", 50), DIM))
     medals = ["🥇", "🥈", "🥉", "  4.", "  5."]
     for i, item in enumerate(top):
-        medal = medals[i] if i < len(medals) else f"  {i+1}."
-        print(f"  {medal}  #{item['client_id']:<5} {item['name']:<28} {c(str(item['count']), YELLOW)} atend.")
+        medal = medals[i] if i < len(medals) else f"  {i + 1}."
+        print(
+            f"  {medal}  #{item['client_id']:<5} {item['name']:<28} {c(str(item['count']), YELLOW)} atend."
+        )
 
 
 def _action_wait_alerts(manager: ClinicManager) -> None:
@@ -427,7 +443,9 @@ def _action_wait_alerts(manager: ClinicManager) -> None:
     for service, wait_secs in alerts:
         mins = int(wait_secs // 60)
         secs = int(wait_secs % 60)
-        _warn(f"⚠  {service.client_name} | Esperando há {mins}m {secs}s (serviço #{service.service_id})")
+        _warn(
+            f"⚠  {service.client_name} | Esperando há {mins}m {secs}s (serviço #{service.service_id})"
+        )
 
 
 def _action_report_attendant(manager: ClinicManager) -> None:
@@ -436,11 +454,18 @@ def _action_report_attendant(manager: ClinicManager) -> None:
     if not report:
         _info("Nenhum dado de atendimento disponível.")
         return
-    print(c(f"\n  {'ID':<6} {'NOME':<25} {'Atend.':<8} {'Total(s)':<12} {'Média(s)'}", DIM))
+    print(
+        c(
+            f"\n  {'ID':<6} {'NOME':<25} {'Atend.':<8} {'Total(s)':<12} {'Média(s)'}",
+            DIM,
+        )
+    )
     print(c("  " + _line("·", 60), DIM))
     for row in report:
         avg = row["total_seconds"] / row["count"] if row["count"] > 0 else 0
-        print(f"  #{row['attendant_id']:<5} {row['name']:<25} {row['count']:<8} {row['total_seconds']:<12.1f} {avg:.1f}")
+        print(
+            f"  #{row['attendant_id']:<5} {row['name']:<25} {row['count']:<8} {row['total_seconds']:<12.1f} {avg:.1f}"
+        )
 
 
 def _action_export(manager: ClinicManager, kind: str) -> None:
@@ -456,10 +481,6 @@ def _action_export(manager: ClinicManager, kind: str) -> None:
     except Exception as e:
         _err(f"Erro ao exportar: {e}")
 
-
-# ────────────────────────────────────────────────────────────────────────────── #
-#  LOOP PRINCIPAL                                                                #
-# ────────────────────────────────────────────────────────────────────────────── #
 
 VALID_OPTIONS = [str(i) for i in range(22)] + ["s"]
 
@@ -483,7 +504,9 @@ def run() -> None:
         # Alertas automáticos de espera
         alerts = manager.get_wait_alerts()
         if alerts:
-            _warn(f"⚠  {len(alerts)} cliente(s) com tempo de espera elevado! (opção 17 para ver)")
+            _warn(
+                f"⚠  {len(alerts)} cliente(s) com tempo de espera elevado! (opção 17 para ver)"
+            )
             print()
 
         choice = _read_option(VALID_OPTIONS)
@@ -491,15 +514,15 @@ def run() -> None:
         clear_screen()
 
         actions = {
-            "1":  lambda: _action_register_client(manager),
-            "2":  lambda: _action_register_attendant(manager),
-            "3":  lambda: _action_list_clients(manager),
-            "4":  lambda: _action_list_attendants(manager),
-            "5":  lambda: _action_search_client(manager),
-            "6":  lambda: _action_open_service(manager),
-            "7":  lambda: _action_call_next(manager),
-            "8":  lambda: _action_finish_service(manager),
-            "9":  lambda: _action_show_queues(manager),
+            "1": lambda: _action_register_client(manager),
+            "2": lambda: _action_register_attendant(manager),
+            "3": lambda: _action_list_clients(manager),
+            "4": lambda: _action_list_attendants(manager),
+            "5": lambda: _action_search_client(manager),
+            "6": lambda: _action_open_service(manager),
+            "7": lambda: _action_call_next(manager),
+            "8": lambda: _action_finish_service(manager),
+            "9": lambda: _action_show_queues(manager),
             "10": lambda: _action_undo(manager),
             "11": lambda: _action_list_active(manager),
             "12": lambda: _action_deactivate_client(manager),
@@ -512,8 +535,8 @@ def run() -> None:
             "19": lambda: _action_export(manager, "historico"),
             "20": lambda: _action_export(manager, "desempenho"),
             "21": lambda: _action_export(manager, "top_clientes"),
-            "s":  lambda: (save_state(manager), _ok("Dados salvos com sucesso!")),
-            "0":  None,
+            "s": lambda: (save_state(manager), _ok("Dados salvos com sucesso!")),
+            "0": None,
         }
 
         if choice == "0":

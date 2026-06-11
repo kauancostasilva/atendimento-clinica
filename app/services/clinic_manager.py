@@ -1,18 +1,18 @@
 """Gerenciador central da clínica - Camada de Regras de Negócio."""
+
 import logging
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
-from app.models.client import Client, Priority
 from app.models.attendant import Attendant
+from app.models.client import Client, Priority
 from app.models.service import Service, ServiceStatus
-from app.structures.stack import Stack
-from app.structures.queue import Queue
-from app.structures.linked_list import LinkedList
-from app.structures.sorted_vector import SortedVector
 from app.services.algorithms import quicksort, top_n
+from app.structures.linked_list import LinkedList
+from app.structures.queue import Queue
+from app.structures.sorted_vector import SortedVector
+from app.structures.stack import Stack
 
-# Tempo máximo de espera antes de emitir alerta (em segundos)
 WAIT_ALERT_THRESHOLD_SECONDS = 900  # 15 minutos
 
 logging.basicConfig(
@@ -38,26 +38,24 @@ class ClinicManager:
 
     def __init__(self):
         # Cadastros
-        self._clients_vector: SortedVector = SortedVector()    # Busca binária O(log N)
-        self._active_clients: LinkedList = LinkedList()         # Clientes ativos
-        self._attendants: list = []                             # Vetor não ordenado de atendentes
+        self._clients_vector: SortedVector = SortedVector()  # Busca binária O(log N)
+        self._active_clients: LinkedList = LinkedList()  # Clientes ativos
+        self._attendants: list = []  # Vetor não ordenado de atendentes
         self._next_client_id: int = 1
         self._next_attendant_id: int = 1
         self._next_service_id: int = 1
 
         # Filas de atendimento
-        self._priority_queue: Queue = Queue()                   # Fila prioritária FIFO O(1)
-        self._normal_queue: Queue = Queue()                     # Fila normal FIFO O(1)
+        self._priority_queue: Queue = Queue()  # Fila prioritária FIFO O(1)
+        self._normal_queue: Queue = Queue()  # Fila normal FIFO O(1)
 
         # Histórico e undo
-        self._history: list = []                                # Todos os atendimentos
-        self._undo_stack: Stack = Stack()                       # Pilha de undo O(1)
+        self._history: list = []  # Todos os atendimentos
+        self._undo_stack: Stack = Stack()  # Pilha de undo O(1)
 
-    # ------------------------------------------------------------------ #
-    #  CLIENTES                                                           #
-    # ------------------------------------------------------------------ #
-
-    def register_client(self, name: str, phone: str, priority: Priority = Priority.NORMAL) -> Client:
+    def register_client(
+        self, name: str, phone: str, priority: Priority = Priority.NORMAL
+    ) -> Client:
         """Cadastra um novo cliente. Insere no vetor ordenado e na lista encadeada.
         Complexidade: O(N) inserção ordenada + O(N) append na lista encadeada.
         """
@@ -73,8 +71,8 @@ class ClinicManager:
             priority=priority,
         )
         self._next_client_id += 1
-        self._clients_vector.insert(client)   # Mantém vetor ordenado por ID
-        self._active_clients.append(client)   # Adiciona à lista encadeada de ativos
+        self._clients_vector.insert(client)  # Mantém vetor ordenado por ID
+        self._active_clients.append(client)  # Adiciona à lista encadeada de ativos
         logger.info("Cliente cadastrado: %s", client)
         return client
 
@@ -100,7 +98,8 @@ class ClinicManager:
 
         # Verifica atendimento em aberto
         open_services = [
-            s for s in self._history
+            s
+            for s in self._history
             if s.client_id == client_id and s.status == ServiceStatus.IN_PROGRESS
         ]
         if open_services:
@@ -129,12 +128,10 @@ class ClinicManager:
         """
         removed = self._active_clients.remove_inactive_clients()
         for c in removed:
-            logger.info("Cliente inativo removido da lista ativa: #%d - %s", c.client_id, c.name)
+            logger.info(
+                "Cliente inativo removido da lista ativa: #%d - %s", c.client_id, c.name
+            )
         return removed
-
-    # ------------------------------------------------------------------ #
-    #  ATENDENTES                                                         #
-    # ------------------------------------------------------------------ #
 
     def register_attendant(self, name: str) -> Attendant:
         """Cadastra um novo atendente no vetor não ordenado. Complexidade: O(1) amortizado."""
@@ -168,10 +165,6 @@ class ClinicManager:
                 return att
         return None
 
-    # ------------------------------------------------------------------ #
-    #  FILAS E ATENDIMENTO                                                #
-    # ------------------------------------------------------------------ #
-
     def open_service(self, client_id: int) -> Service:
         """Coloca o cliente na fila adequada (prioridade ou normal).
         Regra: clientes prioritários entram na fila de prioridade.
@@ -181,15 +174,20 @@ class ClinicManager:
         if client is None:
             raise ValueError(f"Cliente #{client_id} não encontrado.")
         if not client.active:
-            raise ValueError(f"Cliente #{client_id} está inativo e não pode entrar na fila.")
+            raise ValueError(
+                f"Cliente #{client_id} está inativo e não pode entrar na fila."
+            )
 
         # Verifica se já está em atendimento ou na fila
         already_in = any(
-            s.client_id == client_id and s.status in (ServiceStatus.WAITING, ServiceStatus.IN_PROGRESS)
+            s.client_id == client_id
+            and s.status in (ServiceStatus.WAITING, ServiceStatus.IN_PROGRESS)
             for s in self._history
         )
         if already_in:
-            raise ValueError(f"Cliente #{client_id} já possui um atendimento aberto ou está na fila.")
+            raise ValueError(
+                f"Cliente #{client_id} já possui um atendimento aberto ou está na fila."
+            )
 
         service = Service(
             service_id=self._next_service_id,
@@ -237,7 +235,9 @@ class ClinicManager:
         attendant.current_service_id = service.service_id
         logger.info(
             "Atendimento iniciado: serviço #%d | %s → %s",
-            service.service_id, service.client_name, attendant.name,
+            service.service_id,
+            service.client_name,
+            attendant.name,
         )
         return service
 
@@ -250,7 +250,9 @@ class ClinicManager:
         if attendant is None:
             raise ValueError(f"Atendente #{attendant_id} não encontrado.")
         if not attendant.busy:
-            raise ValueError(f"Atendente #{attendant_id} não está atendendo nenhum cliente.")
+            raise ValueError(
+                f"Atendente #{attendant_id} não está atendendo nenhum cliente."
+            )
 
         service_id = attendant.current_service_id
         service = next((s for s in self._history if s.service_id == service_id), None)
@@ -262,14 +264,18 @@ class ClinicManager:
         attendant.current_service_id = None
 
         # Salva estado para undo
-        self._undo_stack.push({
-            "service": service,
-            "attendant_id": attendant_id,
-        })
+        self._undo_stack.push(
+            {
+                "service": service,
+                "attendant_id": attendant_id,
+            }
+        )
 
         logger.info(
             "Atendimento finalizado: serviço #%d | %s | duração: %.1fs",
-            service.service_id, service.client_name, service.duration_seconds or 0,
+            service.service_id,
+            service.client_name,
+            service.duration_seconds or 0,
         )
         return service
 
@@ -304,13 +310,10 @@ class ClinicManager:
 
         logger.info(
             "Undo aplicado: serviço #%d restaurado para IN_PROGRESS | atendente: %s",
-            service.service_id, attendant.name,
+            service.service_id,
+            attendant.name,
         )
         return service
-
-    # ------------------------------------------------------------------ #
-    #  RELATÓRIOS E ANÁLISES                                              #
-    # ------------------------------------------------------------------ #
 
     def get_queue_status(self) -> Tuple[list, list]:
         """Retorna o estado atual das filas (prioritária, normal)."""
@@ -339,7 +342,8 @@ class ClinicManager:
 
         if date_filter:
             results = [
-                s for s in results
+                s
+                for s in results
                 if s.created_at and s.created_at.startswith(date_filter)
             ]
         return results
@@ -350,11 +354,16 @@ class ClinicManager:
         Complexidade: O(N) recursiva.
         """
         finished = [
-            s for s in self._history
+            s
+            for s in self._history
             if s.status == ServiceStatus.FINISHED and s.duration_seconds is not None
         ]
         if date_filter:
-            finished = [s for s in finished if s.created_at and s.created_at.startswith(date_filter)]
+            finished = [
+                s
+                for s in finished
+                if s.created_at and s.created_at.startswith(date_filter)
+            ]
 
         if not finished:
             return 0.0
@@ -369,7 +378,9 @@ class ClinicManager:
         """
         if index >= len(services):
             return 0.0
-        return services[index].duration_seconds + self._recursive_sum_durations(services, index + 1)
+        return services[index].duration_seconds + self._recursive_sum_durations(
+            services, index + 1
+        )
 
     def top_clients(self, n: int = 5) -> list:
         """Retorna os N clientes mais atendidos usando Quicksort recursivo.
@@ -378,7 +389,9 @@ class ClinicManager:
         count: dict = {}
         for s in self._history:
             if s.status == ServiceStatus.FINISHED:
-                count[s.client_id] = count.get(s.client_id, {"count": 0, "name": s.client_name})
+                count[s.client_id] = count.get(
+                    s.client_id, {"count": 0, "name": s.client_name}
+                )
                 count[s.client_id]["count"] += 1
 
         items = [{"client_id": cid, **info} for cid, info in count.items()]
@@ -392,18 +405,17 @@ class ClinicManager:
         for s in self._history:
             if s.status == ServiceStatus.FINISHED and s.attendant_id is not None:
                 if s.attendant_id not in count:
-                    count[s.attendant_id] = {"name": s.attendant_name, "count": 0, "total_seconds": 0.0}
+                    count[s.attendant_id] = {
+                        "name": s.attendant_name,
+                        "count": 0,
+                        "total_seconds": 0.0,
+                    }
                 count[s.attendant_id]["count"] += 1
                 count[s.attendant_id]["total_seconds"] += s.duration_seconds or 0.0
 
         items = [{"attendant_id": aid, **info} for aid, info in count.items()]
         return quicksort(items, key_func=lambda x: x["count"], reverse=True)
 
-    # ------------------------------------------------------------------ #
-    #  ESTADO (para persistência)                                         #
-    # ------------------------------------------------------------------ #
-
-    def to_dict(self) -> dict:
         """Serializa todo o estado do gerenciador para persistência."""
         return {
             "next_client_id": self._next_client_id,
@@ -416,8 +428,8 @@ class ClinicManager:
 
     def load_from_dict(self, data: dict) -> None:
         """Carrega o estado a partir de dados persistidos."""
-        from app.models.client import Client
         from app.models.attendant import Attendant
+        from app.models.client import Client
         from app.models.service import Service
 
         self._next_client_id = data.get("next_client_id", 1)
